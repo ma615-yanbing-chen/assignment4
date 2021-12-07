@@ -1,6 +1,6 @@
 ---
 title: "MA615 Assignment4"
-subtitle: "Text Analysis of Pierre and Jean"
+subtitle: "Text Analysis of Pierre and Jean Task Two"
 author: "Yanbing Chen"
 date: "2021/12/6"
 output: 
@@ -86,6 +86,7 @@ afinn <- tidy_pierre %>%
   mutate(method = "AFINN")
 ```
 
+
 ```{r,echo=FALSE}
 #textdata::lexicon_nrc(delete = TRUE)
 #nrc <- textdata::lexicon_nrc()
@@ -123,6 +124,7 @@ bind_rows(afinn,
   geom_col(show.legend = FALSE) +
   facet_wrap(~method, ncol = 1, scales = "free_y")
 ```
+
 
 ```{r,echo=FALSE}
 bing_word_counts<-tidy_pierre %>%
@@ -187,15 +189,8 @@ tidy_pierre %>%
                    max.words = 100)
 ```
 
-
-
 Figure4 shows a comparison between positive and negative words in this book, and the size of words text is in proportion to its frequency within its sentiment. Apparently, the font size of positive words are much larger than negative words, which also explains that the frequency of positive words are higher than the negative words'.
 
 
-## Task Three: Sentence-level analysis
-
-```{r}
-#tnBooksFromLines(Pierre$text, "Guy de Maupassant/test2")
-```
 
 
