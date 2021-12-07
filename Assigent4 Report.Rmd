@@ -176,6 +176,7 @@ tidy_pierre %>%
 Figure3 illustrates that the most frequently used words in this book are jean, mother, father, time, son, day and so on. The size of the font and the depth of the color can also tell that words related to a person's name or family members appear more frequently.
 
 
+
 ```{r fig.width=6, fig.height=4,fig.cap="sentiment word cloud"}
 ## reshape the wordcloud
 tidy_pierre %>%
@@ -186,13 +187,15 @@ tidy_pierre %>%
                    max.words = 100)
 ```
 
+
+
 Figure4 shows a comparison between positive and negative words in this book, and the size of words text is in proportion to its frequency within its sentiment. Apparently, the font size of positive words are much larger than negative words, which also explains that the frequency of positive words are higher than the negative words'.
 
 
 ## Task Three: Sentence-level analysis
 
-
 ```{r}
 #tnBooksFromLines(Pierre$text, "Guy de Maupassant/test2")
 ```
+
 
