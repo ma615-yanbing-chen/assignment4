@@ -1,0 +1,198 @@
+---
+title: "MA615 Assignment4"
+subtitle: "Text Analysis of Pierre and Jean"
+author: "Yanbing Chen"
+date: "2021/12/6"
+output: 
+  pdf_document: 
+    keep_tex: yes
+---
+
+```{r, echo=FALSE}
+# install.packages('tinytex')
+# tinytex::install_tinytex()
+library(rticles)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning=F,message = F,echo=F,highlight=F)
+#knitr::opts_chunk$set(echo = TRUE,out.width="0.9\\linewidth",dev="png",fig.align  = 'center')
+knitr::opts_chunk$set(fig.width=6, fig.height=4,fig.align = "center") 
+pacman::p_load(
+  gutenbergr,
+  tidytext,
+  textdata,
+  dplyr,
+  stringr,
+  tidyverse,
+  tidyr,
+  scales,
+  reshape2,
+  ggplot2,
+  tinytex,
+  latexpdf)
+```
+
+## Task One: Pick a book
+
+According to the task one requirement, I pick a fiction book named Pierre and jean written by Guy de Maupassant on The Gutenburg Project to do text analysis. The book size is 284kB.
+
+
+```{r, echo=FALSE}
+# read the book into R
+#gutenberg_works(str_detect(author,"Guy de Maupassant"))
+book<-gutenberg_download(c(3804))
+```
+
+
+```{r,echo=FALSE}
+#devtools::install_github("Truenumbers/tnum/tnum",force = TRUE)
+library(tnum)
+tnum.authorize("mssp1.bu.edu")
+tnum.setSpace("test2")
+source("Book2TN-v6A-1.R")
+```
+
+
+```{r,echo=FALSE}
+# adjust book type
+write.table(book,'Pierre.txt',row.names = F) 
+Pierre <- read.table('Pierre.txt',header = TRUE)
+```
+
+## Task Two: Bag of words analysis
+
+In this part, I tidy information in the book to gain a clean data file called 'tidy_pierre'. Because there are many options for sentiment lexicons, I try three methods that are AFINN,BING, and NRC to make box plot to find which measure is the best.
+As figure1 shown, the BING fits better, therefor, finally I chose to apply NRC method in deeper text analysis.
+
+
+```{r, echo=FALSE}
+#tidy books
+tidy_pierre <- Pierre %>%
+  mutate(
+    linenumber = row_number(),
+    chapter = cumsum(str_detect(text, 
+                                regex("^chapter [\\divxlc]", 
+                                      ignore_case = TRUE)))) %>% 
+  unnest_tokens(word, text) 
+```
+
+
+```{r}
+afinn <- tidy_pierre %>% 
+  inner_join(get_sentiments("afinn")) %>% 
+  group_by(index = linenumber %/% 80) %>% 
+  summarise(sentiment = sum(value)) %>% 
+  mutate(method = "AFINN")
+```
+
+```{r,echo=FALSE}
+#textdata::lexicon_nrc(delete = TRUE)
+#nrc <- textdata::lexicon_nrc()
+# get_sentiments("afinn")
+# get_sentiments("bing")
+# get_sentiments("nrc")
+afinn <- tidy_pierre %>% 
+  inner_join(get_sentiments("afinn")) %>% 
+  group_by(index = linenumber %/% 80) %>% 
+  summarise(sentiment = sum(value)) %>% 
+  mutate(method = "AFINN")
+
+bing_and_nrc <- bind_rows(
+  tidy_pierre %>% 
+    inner_join(get_sentiments("bing")) %>%
+    mutate(method = "Bing et al."),
+  tidy_pierre %>% 
+    inner_join(get_sentiments("nrc") %>% 
+                 filter(sentiment %in% c("positive", 
+                                         "negative"))
+    ) %>%
+    mutate(method = "NRC")) %>%
+  count(method, index = linenumber %/% 80, sentiment) %>%
+  pivot_wider(names_from = sentiment,
+              values_from = n,
+              values_fill = 0) %>% 
+  mutate(sentiment = positive - negative)
+```
+
+
+```{r fig.cap="sentiment plot"}
+bind_rows(afinn, 
+          bing_and_nrc) %>%
+  ggplot(aes(index, sentiment, fill = method)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~method, ncol = 1, scales = "free_y")
+```
+
+```{r,echo=FALSE}
+bing_word_counts<-tidy_pierre %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word,sentiment,sort=TRUE) %>%
+  ungroup()
+```
+
+
+```{r fig.width=6, fig.height=2,fig.cap="negative positive words count"}
+bing_word_counts %>%
+  group_by(sentiment) %>%
+  slice_max(n, n = 10) %>% 
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(n, word, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = "free_y") +
+  labs(x = "Contribution to sentiment",
+       y = NULL)
+
+# custom_stop_words<-bind_rows(tibble(word=c("miss"),
+#                                     lexicon=c("custom")),
+#                              stop_words)
+# custom_stop_words
+```
+
+Figure2 counts the number of positive and negative sentiment words in `Pierre and Jean`, and lists the top ten positive and negative emotional words that appear most frequently in the book. Base on the picture's information, we can see that positive words appear more frequently than negative words. In negative words, the most frequent occurrence is "poor", appearing nearly 30 times. In positive terms, "like" appears more than 90 times, and good, well follow by it.
+
+
+```{r fig.width=6, fig.height=4,fig.cap='word cloud'}
+library(wordcloud)
+library(wordcloud2)
+# Wordclouds
+# photo<-tidy_pierre %>%
+#   anti_join(stop_words) %>%
+#   count(word)
+
+tidy_pierre %>%
+  anti_join(stop_words) %>%
+  count(word) %>%
+  with(wordcloud(word,n,max.words = 100,random.order=T,colors=c("#3e236e", "#673AB7", "#9370d2", 
+                               "#0044a9", "#1B76FF", "#76adff", 
+                               "#28602b", "#43A047", "#87cd8a")))
+
+# data("bookshape picture.png",package = "wordcloud2")
+# picture = system.file("bookshape picture.png",package = "wordcloud2")
+# wordcloud2(photo, figPath = book, size = 1)
+```
+
+Figure3 illustrates that the most frequently used words in this book are jean, mother, father, time, son, day and so on. The size of the font and the depth of the color can also tell that words related to a person's name or family members appear more frequently.
+
+
+```{r fig.width=6, fig.height=4,fig.cap="sentiment word cloud"}
+## reshape the wordcloud
+tidy_pierre %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word,sentiment,sort=TRUE) %>%
+  acast(word~sentiment,value.var = "n",fill=0) %>%
+  comparison.cloud(colors=c("gray20","gray80"),
+                   max.words = 100)
+```
+
+Figure4 shows a comparison between positive and negative words in this book, and the size of words text is in proportion to its frequency within its sentiment. Apparently, the font size of positive words are much larger than negative words, which also explains that the frequency of positive words are higher than the negative words'.
+
+
+## Task Three: Sentence-level analysis
+
+
+```{r}
+#tnBooksFromLines(Pierre$text, "Guy de Maupassant/test2")
+```
+
