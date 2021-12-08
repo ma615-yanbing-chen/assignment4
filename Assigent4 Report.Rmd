@@ -37,6 +37,12 @@ pacman::p_load(
 
 According to the task one requirement, I pick a fiction book named Pierre and jean written by Guy de Maupassant on The Gutenburg Project to do text analysis. The book size is 284kB.
 
+Here is the introduction of this book:
+
+The Pierre and Jean , a novel by the French writer Guy de Moposan, which is a serious psychological novel about Pierre and Jean are two brothers. Pierre and Jean, the son of retired businessman Laurent's father, are both adults and graduates of medical and forensics, respectively. Besides,they are both facing the problem of struggling to set up a family. One day, Jean suddenly got an inheritance, which was left to him by a former old friend of the Rolands, Marechar, which made him a rich man overnight. The proporty assigned by the two brothers are unfair, making Pierre began to feel a little jealous, wondered, and finally found that his brother was the illegitimate son of his mother's secret love affair with Marechar, so he was in great pain. His love for his mother turned into resentment, he could not torture her with rude attitude and words, and conflicted with Jean. There was such a deep emotional rift that he could no longer spend time with his family and had to leave his family to work as a doctor on a cruise ship between France and the United States. The whole family sent him offshore, and he had a feeling of eternal farewell. His mother was heartbroken that he would never see her son again.
+
+The plot of the novel is bland, but the whole work is not short of exciting power. Instead of resorting to strange ideas and extraordinary events, the author acquires touching power through the ethical contradictions of a family with tragic colors.
+
 
 ```{r, echo=FALSE}
 # read the book into R
@@ -56,9 +62,10 @@ source("Book2TN-v6A-1.R")
 
 ```{r,echo=FALSE}
 # adjust book type
-write.table(book,'Pierre.txt',row.names = F) 
+#write.table(book,'Pierre.txt',row.names = F) 
 Pierre <- read.table('Pierre.txt',header = TRUE)
 ```
+
 
 ## Task Two: Bag of words analysis
 
@@ -117,11 +124,12 @@ bing_and_nrc <- bind_rows(
 ```
 
 
-```{r fig.cap="sentiment plot"}
+```{r}
 bind_rows(afinn, 
           bing_and_nrc) %>%
   ggplot(aes(index, sentiment, fill = method)) +
   geom_col(show.legend = FALSE) +
+  labs(title = 'Figure 1 sentiment plot') +
   facet_wrap(~method, ncol = 1, scales = "free_y")
 ```
 
@@ -134,7 +142,7 @@ bing_word_counts<-tidy_pierre %>%
 ```
 
 
-```{r fig.width=6, fig.height=2,fig.cap="negative positive words count"}
+```{r fig.width=6, fig.height=2}
 bing_word_counts %>%
   group_by(sentiment) %>%
   slice_max(n, n = 10) %>% 
@@ -142,9 +150,9 @@ bing_word_counts %>%
   mutate(word = reorder(word, n)) %>%
   ggplot(aes(n, word, fill = sentiment)) +
   geom_col(show.legend = FALSE) +
-  facet_wrap(~sentiment, scales = "free_y") +
+  facet_wrap(~sentiment, scales = "free_y")+
   labs(x = "Contribution to sentiment",
-       y = NULL)
+       y = NULL,title="Figure 2 negative positive words count")
 
 # custom_stop_words<-bind_rows(tibble(word=c("miss"),
 #                                     lexicon=c("custom")),
@@ -155,20 +163,17 @@ bing_word_counts %>%
 Figure2 counts the number of positive and negative sentiment words in `Pierre and Jean`, and lists the top ten positive and negative emotional words that appear most frequently in the book. Base on the picture's information, we can see that positive words appear more frequently than negative words. In negative words, the most frequent occurrence is "poor", appearing nearly 30 times. In positive terms, "like" appears more than 90 times, and good, well follow by it.
 
 
-```{r fig.width=6, fig.height=4,fig.cap='word cloud'}
+```{r fig.width=6, fig.height=4}
 library(wordcloud)
 library(wordcloud2)
-# Wordclouds
-# photo<-tidy_pierre %>%
-#   anti_join(stop_words) %>%
-#   count(word)
 
 tidy_pierre %>%
   anti_join(stop_words) %>%
   count(word) %>%
   with(wordcloud(word,n,max.words = 100,random.order=T,colors=c("#3e236e", "#673AB7", "#9370d2", 
                                "#0044a9", "#1B76FF", "#76adff", 
-                               "#28602b", "#43A047", "#87cd8a")))
+                               "#28602b", "#43A047", "#87cd8a"))) %>%
+  labs(title = 'Figure 3 word cloud')
 
 # data("bookshape picture.png",package = "wordcloud2")
 # picture = system.file("bookshape picture.png",package = "wordcloud2")
@@ -179,14 +184,15 @@ Figure3 illustrates that the most frequently used words in this book are jean, m
 
 
 
-```{r fig.width=6, fig.height=4,fig.cap="sentiment word cloud"}
+```{r fig.width=6, fig.height=4}
 ## reshape the wordcloud
 tidy_pierre %>%
   inner_join(get_sentiments("bing")) %>%
   count(word,sentiment,sort=TRUE) %>%
   acast(word~sentiment,value.var = "n",fill=0) %>%
   comparison.cloud(colors=c("gray20","gray80"),
-                   max.words = 100)
+                   max.words = 100) %>%  
+  labs(title = 'Figure 4 sentiment word cloud')
 ```
 
 Figure4 shows a comparison between positive and negative words in this book, and the size of words text is in proportion to its frequency within its sentiment. Apparently, the font size of positive words are much larger than negative words, which also explains that the frequency of positive words are higher than the negative words'.
