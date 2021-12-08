@@ -1,0 +1,150 @@
+---
+title: "MA615 Assignment4"
+subtitle: "Text Analysis of Pierre and Jean Task Three"
+author: "Yanbing Chen"
+date: "2021/12/6"
+output: 
+  pdf_document: 
+    keep_tex: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning=F,message = F,echo=F,highlight=F)
+#knitr::opts_chunk$set(echo = TRUE,out.width="0.9\\linewidth",dev="png",fig.align  = 'center')
+knitr::opts_chunk$set(fig.width=6, fig.height=4,fig.align = "center") 
+pacman::p_load(
+  gutenbergr,
+  tidytext,
+  magrittr,
+  textdata,
+  dplyr,
+  stringr,
+  tidyverse,
+  tidyr,
+  scales,
+  reshape2,
+  ggplot2,
+  tinytex,
+  latexpdf,
+  sentimentr)
+```
+
+In this task, I used Truenumbers to do text analysis. Firstly,I adjusted book type and uploaded the book I chose to tnum. Then I plotted a picture to show order of chapters in this book, and calculated the positive words and negative words in each chapter to show a comparison(as Picture 1 shown).Finally, according to the task requirement,I compared this analysis with the analysis I did in Task Two(Bing method) and used Figure 2 to display the result.
+
+## Upload data to tnum
+```{r, echo=TRUE}
+# read the book into R
+#gutenberg_works(str_detect(author,"Guy de Maupassant"))
+book<-gutenberg_download(c(3804))
+```
+
+
+```{r,echo=TRUE}
+#devtools::install_github("Truenumbers/tnum/tnum",force = TRUE)
+library(tnum)
+tnum.authorize("mssp1.bu.edu")
+tnum.setSpace("test2")
+source("Book2TN-v6A-1.R")
+```
+
+
+```{r,echo=FALSE}
+# adjust book type
+#write.table(book,'Pierre.txt',row.names = F) 
+Pierre <- read.table('Pierre.txt',header = TRUE)
+```
+
+```{r}
+#tnBooksFromLines(Pierre$text, "Maupassant/Pierre_Jeans")
+```
+
+
+```{r}
+tidy_pierre <- Pierre %>%
+  mutate(
+    linenumber = row_number(),
+    chapter = cumsum(str_detect(text, 
+                                regex("chapter", 
+                                      ignore_case = TRUE)))) %>% 
+  unnest_tokens(word, text) 
+```
+
+
+```{r,echo=TRUE}
+DF6<- tnum.query('Maupassant/Pierre_Jeans/section# has text',max=10000) %>% tnum.objectsToDf()
+DF6 %>% view()
+pierre_sentence<-DF6 %>% separate(col=subject,
+                  into = c("path1", "path2","section","paragraph","sentence"), 
+                  sep = "/", 
+                  fill = "right") %>% 
+  select(section:string.value)
+```
+
+```{r,echo=TRUE}
+#book_sentence$section<-str_extract_all(book_sentence$section,"\\d+") %>% unlist() %>% as.numeric()
+pierre_sentence<-pierre_sentence %>% mutate_at(c('section','paragraph','sentence'),~str_extract_all(.,"\\d+") %>% unlist() %>% as.numeric())
+```
+
+
+
+```{r,echo=TRUE}
+sentence_out<-pierre_sentence %>% dplyr::mutate(sentence_split = get_sentences(string.value)) %$%
+    sentiment_by(sentence_split, list(section))
+
+plot(sentence_out)
+```
+
+This picture shows the sentiments number in each section and lists the number of sentiments words in each section. The range of x-axis is from -1 to 1. Dots in -1 to 1 mean negative words, in the contrary, range 0 to 1 contains positive words. Based on the density of dots, the result is clear that there are more positive words than negative words in this book, which corresponds to the word cloud in task two. In addition, sention 7 contains the most number of sentiment words and section 1 has the less.
+
+
+## Compare two methos that were ultilized in Task Two and Task Three.
+```{r}
+# create a new bing with index=chapter
+new_bing<-tidy_pierre %>% 
+    inner_join(get_sentiments("bing")) %>%
+    mutate(method = "Bing et al.") %>% 
+    count(method, index = chapter, sentiment) %>%
+  pivot_wider(names_from = sentiment,
+              values_from = n,
+              values_fill = 0) %>% 
+  mutate(sentiment = positive - negative)
+
+# scale sentiment to keep unit same 
+new_bing2<-new_bing %>% 
+  mutate(bing_scale=scale(sentiment)) %>% 
+  select(method,index,bing_scale)
+
+# change colname in order to join by section
+colnames(new_bing2)[2]='section'
+
+# scale sentiment to keep unit same 
+sentence_out<-sentence_out %>% mutate(sentimentr_scale=scale(ave_sentiment))
+
+# join two df together
+sentence_out_2method<-left_join(sentence_out,new_bing2,by='section')%>% select(section,bing_scale,sentimentr_scale)
+
+# use pivot longer for ggplot
+sentence_out_2method_plot<-sentence_out_2method %>% pivot_longer(cols=c('sentimentr_scale','bing_scale'),names_to = 'sentiment')
+
+# create a barplot to compare two methods
+sentence_out_2method_plot %>%ggplot(aes(y=value,x=factor(section))) +
+  geom_bar(aes(fill=factor(sentiment)),stat='identity',position = "dodge",width = 0.7)+theme_bw()
+
+```
+Due to these are two different methods, so it is not easy and reasonable to compare them directly. Therefore, I limited the range of these sentiment words, just similar what I did in the previous diagram. After defining the scale, I made a bar plot to explain the result. In each session, the sentiment trends in vocabulary are roughly the same, but the specific values are different. However, I think setimentr method is better the Bing.
+
+
+```{r}
+# TQ6<- tnum.query('Jane_Austen/persuation# has text',max=70000)
+# DF6 <- tnum.objectsToDf(TQ6)
+# knitr::kable(DF6 %>% select(subject:numeric.value)%>% head())
+# book_sentence<-DF6 %>% separate(col=subject,
+#                   into = c("path1", "path2","section","paragraph","sentence"), 
+#                   sep = "/", 
+#                   fill = "right") %>% 
+#   select(section:string.value)
+```
+
+
+
+
