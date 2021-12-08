@@ -31,7 +31,7 @@ pacman::p_load(
 
 In this task, I used Truenumbers to do text analysis. Firstly,I adjusted book type and uploaded the book I chose to tnum. Then I plotted a picture to show order of chapters in this book, and calculated the positive words and negative words in each chapter to show a comparison(as Picture 1 shown).Finally, according to the task requirement,I compared this analysis with the analysis I did in Task Two(Bing method) and used Figure 2 to display the result.
 
-## Upload data to tnum
+## Download the book
 ```{r, echo=TRUE}
 # read the book into R
 #gutenberg_works(str_detect(author,"Guy de Maupassant"))
@@ -50,10 +50,11 @@ source("Book2TN-v6A-1.R")
 
 ```{r,echo=FALSE}
 # adjust book type
-#write.table(book,'Pierre.txt',row.names = F) 
+# write.table(book,'Pierre.txt',row.names = F) 
 Pierre <- read.table('Pierre.txt',header = TRUE)
 ```
 
+## Load 'Pierre and Jean' into the test2 number space
 ```{r}
 #tnBooksFromLines(Pierre$text, "Maupassant/Pierre_Jeans")
 ```
@@ -86,7 +87,6 @@ pierre_sentence<-pierre_sentence %>% mutate_at(c('section','paragraph','sentence
 ```
 
 
-
 ```{r,echo=TRUE}
 sentence_out<-pierre_sentence %>% dplyr::mutate(sentence_split = get_sentences(string.value)) %$%
     sentiment_by(sentence_split, list(section))
@@ -97,7 +97,7 @@ plot(sentence_out)
 This picture shows the sentiments number in each section and lists the number of sentiments words in each section. The range of x-axis is from -1 to 1. Dots in -1 to 1 mean negative words, in the contrary, range 0 to 1 contains positive words. Based on the density of dots, the result is clear that there are more positive words than negative words in this book, which corresponds to the word cloud in task two. In addition, sention 7 contains the most number of sentiment words and section 1 has the less.
 
 
-## Compare two methos that were ultilized in Task Two and Task Three.
+## Compare two methods that were ultilized in Task Two and Task Three.
 ```{r}
 # create a new bing with index=chapter
 new_bing<-tidy_pierre %>% 
@@ -128,10 +128,11 @@ sentence_out_2method_plot<-sentence_out_2method %>% pivot_longer(cols=c('sentime
 
 # create a barplot to compare two methods
 sentence_out_2method_plot %>%ggplot(aes(y=value,x=factor(section))) +
-  geom_bar(aes(fill=factor(sentiment)),stat='identity',position = "dodge",width = 0.7)+theme_bw()
+  geom_bar(aes(fill=factor(sentiment)),stat='identity',position = "dodge",width = 0.7)+theme_bw()+
+  scale_fill_manual('factor(sentiment)',values=c("#bba19e","#d2baa9"))
 
 ```
-Due to these are two different methods, so it is not easy and reasonable to compare them directly. Therefore, I limited the range of these sentiment words, just similar what I did in the previous diagram. After defining the scale, I made a bar plot to explain the result. In each session, the sentiment trends in vocabulary are roughly the same, but the specific values are different. However, I think setimentr method is better the Bing.
+Due to these are two different methods, it is not easy and reasonable to compare them directly. Therefore, I limited the range of these sentiment words, just similar to what I did in the previous diagram in task 2. After defining the scale, I made a bar plot to explain the result. In each session, the sentiment trends in vocabulary are roughly the same, but the specific values are different. However, I think setimentr method is better the Bing.
 
 
 ```{r}
@@ -145,6 +146,8 @@ Due to these are two different methods, so it is not easy and reasonable to comp
 #   select(section:string.value)
 ```
 
-
+## Reference:
+1.https://github.com/MA615-Yuli/MA615_assignment4_new
+2.https://www.gutenberg.org/ebooks/3804
 
 
