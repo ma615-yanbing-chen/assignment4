@@ -1,0 +1,100 @@
+---
+title: "MA615 Assignment4"
+subtitle: "Text Analysis of Pierre and Jean Task Three"
+author: "Yanbing Chen"
+date: "2021/12/6"
+output: 
+  pdf_document: 
+    keep_tex: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning=F,message = F,echo=F,highlight=F)
+#knitr::opts_chunk$set(echo = TRUE,out.width="0.9\\linewidth",dev="png",fig.align  = 'center')
+knitr::opts_chunk$set(fig.width=6, fig.height=4,fig.align = "center") 
+pacman::p_load(
+  gutenbergr,
+  tidytext,
+  magrittr,
+  textdata,
+  dplyr,
+  stringr,
+  tidyverse,
+  tidyr,
+  scales,
+  reshape2,
+  ggplot2,
+  tinytex,
+  latexpdf,
+  sentimentr)
+```
+
+
+```{r, echo=FALSE}
+# read the book into R
+#gutenberg_works(str_detect(author,"Guy de Maupassant"))
+book<-gutenberg_download(c(3804))
+```
+
+
+```{r,echo=FALSE}
+#devtools::install_github("Truenumbers/tnum/tnum",force = TRUE)
+library(tnum)
+tnum.authorize("mssp1.bu.edu")
+tnum.setSpace("test2")
+source("Book2TN-v6A-1.R")
+```
+
+
+```{r,echo=FALSE}
+# adjust book type
+#write.table(book,'Pierre.txt',row.names = F) 
+Pierre <- read.table('Pierre.txt',header = TRUE)
+```
+
+
+```{r}
+#tnBooksFromLines(Pierre$text, "Maupassant/Pierre_Jeans")
+```
+
+```{r}
+DF6<- tnum.query('Maupassant/Pierre_Jeans/section# has text',max=10000) %>% tnum.objectsToDf()
+DF6 %>% view()
+pierre_sentence<-DF6 %>% separate(col=subject,
+                  into = c("path1", "path2","section","paragraph","sentence"), 
+                  sep = "/", 
+                  fill = "right") %>% 
+  select(section:string.value)
+```
+
+
+```{r}
+#book_sentence$section<-str_extract_all(book_sentence$section,"\\d+") %>% unlist() %>% as.numeric()
+pierre_sentence<-pierre_sentence %>% mutate_at(c('section','paragraph','sentence'),~str_extract_all(.,"\\d+") %>% unlist() %>% as.numeric())
+
+```
+
+
+```{r}
+sentence_out<-pierre_sentence %>% dplyr::mutate(sentence_split = get_sentences(string.value)) %$%
+    sentiment_by(sentence_split, list(section))
+
+plot(sentence_out)
+```
+
+
+
+```{r}
+TQ6<- tnum.query('Jane_Austen/persuation# has text',max=70000)
+DF6 <- tnum.objectsToDf(TQ6)
+knitr::kable(DF6 %>% select(subject:numeric.value)%>% head())
+book_sentence<-DF6 %>% separate(col=subject,
+                  into = c("path1", "path2","section","paragraph","sentence"), 
+                  sep = "/", 
+                  fill = "right") %>% 
+  select(section:string.value)
+```
+
+
+
+
