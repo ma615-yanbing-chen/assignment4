@@ -58,6 +58,17 @@ Pierre <- read.table('Pierre.txt',header = TRUE)
 ```
 
 ```{r}
+tidy_pierre <- Pierre %>%
+  mutate(
+    linenumber = row_number(),
+    chapter = cumsum(str_detect(text, 
+                                regex("chapter", 
+                                      ignore_case = TRUE)))) %>% 
+  unnest_tokens(word, text) 
+```
+
+
+```{r,echo=TRUE}
 DF6<- tnum.query('Maupassant/Pierre_Jeans/section# has text',max=10000) %>% tnum.objectsToDf()
 DF6 %>% view()
 pierre_sentence<-DF6 %>% separate(col=subject,
@@ -68,31 +79,66 @@ pierre_sentence<-DF6 %>% separate(col=subject,
 ```
 
 
-```{r}
+```{r,echo=TRUE}
 #book_sentence$section<-str_extract_all(book_sentence$section,"\\d+") %>% unlist() %>% as.numeric()
 pierre_sentence<-pierre_sentence %>% mutate_at(c('section','paragraph','sentence'),~str_extract_all(.,"\\d+") %>% unlist() %>% as.numeric())
-
 ```
 
 
-```{r}
+```{r,echo=TRUE}
 sentence_out<-pierre_sentence %>% dplyr::mutate(sentence_split = get_sentences(string.value)) %$%
     sentiment_by(sentence_split, list(section))
 
 plot(sentence_out)
 ```
 
+## Compare 
 
 
 ```{r}
-TQ6<- tnum.query('Jane_Austen/persuation# has text',max=70000)
-DF6 <- tnum.objectsToDf(TQ6)
-knitr::kable(DF6 %>% select(subject:numeric.value)%>% head())
-book_sentence<-DF6 %>% separate(col=subject,
-                  into = c("path1", "path2","section","paragraph","sentence"), 
-                  sep = "/", 
-                  fill = "right") %>% 
-  select(section:string.value)
+# create a new bing with index=chapter
+new_bing<-tidy_pierre %>% 
+    inner_join(get_sentiments("bing")) %>%
+    mutate(method = "Bing et al.") %>% 
+    count(method, index = chapter, sentiment) %>%
+  pivot_wider(names_from = sentiment,
+              values_from = n,
+              values_fill = 0) %>% 
+  mutate(sentiment = positive - negative)
+
+# scale sentiment to keep unit same 
+new_bing2<-new_bing %>% 
+  mutate(bing_scale=scale(sentiment)) %>% 
+  select(method,index,bing_scale)
+
+# change colname in order to join by section
+colnames(new_bing2)[2]='section'
+
+# scale sentiment to keep unit same 
+sentence_out<-sentence_out %>% mutate(sentimentr_scale=scale(ave_sentiment))
+
+# join two df
+sentence_out_2method<-left_join(sentence_out,new_bing2,by='section')%>% select(section,bing_scale,sentimentr_scale)
+
+# use pivot longer for ggplot
+sentence_out_2method_plot<-sentence_out_2method %>% pivot_longer(cols=c('sentimentr_scale','bing_scale'),names_to = 'sentiment')
+
+# create barplot to compare
+sentence_out_2method_plot %>%ggplot(aes(y=value,x=factor(section))) +
+  geom_bar(aes(fill=factor(sentiment)),stat='identity',position = "dodge",width = 0.7)+theme_bw()
+
+```
+
+
+```{r}
+# TQ6<- tnum.query('Jane_Austen/persuation# has text',max=70000)
+# DF6 <- tnum.objectsToDf(TQ6)
+# knitr::kable(DF6 %>% select(subject:numeric.value)%>% head())
+# book_sentence<-DF6 %>% separate(col=subject,
+#                   into = c("path1", "path2","section","paragraph","sentence"), 
+#                   sep = "/", 
+#                   fill = "right") %>% 
+#   select(section:string.value)
 ```
 
 
