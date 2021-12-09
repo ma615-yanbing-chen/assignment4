@@ -149,5 +149,6 @@ Due to these are two different methods, it is not easy and reasonable to compare
 ## Reference:
 1.https://github.com/MA615-Yuli/MA615_assignment4_new
 2.https://www.gutenberg.org/ebooks/3804
+3.https://www.tidytextmining.com/sentiment.html
 
 
