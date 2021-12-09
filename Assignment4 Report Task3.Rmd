@@ -122,7 +122,7 @@ sentence_out<-sentence_out %>% mutate(sentimentr_scale=scale(ave_sentiment))
  
 # join two df together
 sentence_out_2method<-left_join(sentence_out,new_bing2,by='section')%>% select(section,bing_scale,sentimentr_scale)
-
+ 
 # use pivot longer for ggplot
 sentence_out_2method_plot<-sentence_out_2method %>% pivot_longer(cols=c('sentimentr_scale','bing_scale'),names_to = 'sentiment')
 
