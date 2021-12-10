@@ -146,6 +146,50 @@ Due to these are two different methods, it is not easy and reasonable to compare
 #   select(section:string.value)
 ```
 
+
+## Extra Credits
+Pierre and Jean, the two brothers are the main character of this fiction novel. I pick these two characters from this book. The following table in the count number of times each character appears in each chapter.
+
+
+```{r}
+# use regular expression to find two main characters
+pierre_sentence_ch <- pierre_sentence %>%
+  mutate(Pierre=str_match(pierre_sentence$string.value,regex('([Pi]erre)'))[,1],
+         Jean=str_match(pierre_sentence$string.value,regex('([Je]an)'))[,1])
+```
+
+```{r}
+# use sentiment_by to get the score
+sentence_score <- pierre_sentence_ch %>% 
+  dplyr::mutate(sentence_split = get_sentences(string.value)) %$%
+  sentiment_by(sentence_split) %>% `$`(ave_sentiment)
+
+```
+
+```{r}
+# count two characters' time in each chapter
+pierre_sentence_ch$score <- sentence_score 
+time1 <- pierre_sentence_ch %>% group_by(section) %>% summarise(Pierre = sum(Pierre %>% is.na() %>% `!`()),
+                                                       Jean = sum(Jean%>% is.na() %>% `!`()))
+knitr::kable(time1,'simple')
+```
+
+
+\newpage
+This table is the number of how many times both characters appear in the same paragraphs:  
+
+```{r}
+# use group by to display the result
+time2 <- pierre_sentence_ch %>% group_by(section, paragraph) %>% 
+  summarise(both = sum(Pierre %>% is.na() %>% `!`() & Jean%>% is.na() %>% `!`() ))
+knitr::kable(time2 %>% filter(both > 0),'simple')
+```
+```
+
+
+
+
+
 ## Reference:
 1.https://github.com/MA615-Yuli/MA615_assignment4_new
 2.https://www.gutenberg.org/ebooks/3804
